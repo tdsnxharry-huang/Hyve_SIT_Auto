@@ -1,0 +1,14 @@
+[project]
+name = "retimer-fw-cycle-stress"
+version = "0.1.0"
+description = "Retimer FW upgrade/downgrade endurance (cycle) stress test for Frankfurter38cx2 (K2V5 / Cordite retimer boards)"
+requires-python = ">=3.10"
+dependencies = [
+    "loguru>=0.7.3",
+    "pexpect>=4.9.0",
+]
+
+[tool.uv]
+# Optional: use `uv run --no-sync -- python retimer_fw_cycle_stress.py ...`
+# after `uv sync`, or just `python retimer_fw_cycle_stress.py ...` with the
+# above two packages installed in your environment.

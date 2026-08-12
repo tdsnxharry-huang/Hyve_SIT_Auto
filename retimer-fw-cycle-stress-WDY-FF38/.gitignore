@@ -1,0 +1,8 @@
+# Firmware images are proprietary vendor binaries and must NOT be committed.
+bin_file/*.bin
+
+# Test run artifacts
+logs/
+*.log
+__pycache__/
+*.pyc
