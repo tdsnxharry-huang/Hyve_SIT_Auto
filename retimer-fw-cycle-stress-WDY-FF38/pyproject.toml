@@ -1,14 +1,26 @@
 [project]
-name = "retimer-fw-cycle-stress"
+name = "frankfurter38cx2-bft"
 version = "0.1.0"
-description = "Retimer FW upgrade/downgrade endurance (cycle) stress test for Frankfurter38cx2 (K2V5 / Cordite retimer boards)"
-requires-python = ">=3.10"
+description = "Frankfurter38cx2 board functional / diagnostic tests"
+requires-python = ">=3.12"
 dependencies = [
+    "jc>=1.25.6",
     "loguru>=0.7.3",
     "pexpect>=4.9.0",
+    "pytest>=8.0",
+    "requests>=2.32.0",
+    "typer>=0.12.0",
 ]
 
-[tool.uv]
-# Optional: use `uv run --no-sync -- python retimer_fw_cycle_stress.py ...`
-# after `uv sync`, or just `python retimer_fw_cycle_stress.py ...` with the
-# above two packages installed in your environment.
+[project.scripts]
+frankfurter-bft = "main:app"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["main"]
+
+[tool.setuptools.packages.find]
+include = ["bft*", "libs*", "test*"]

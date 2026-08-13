@@ -1,6 +1,15 @@
 #!/bin/sh
 set -eu
 
+require_cmd() {
+    cmd="$1"
+    pkg="$2"
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo "Error: missing command '$cmd'. Please install package: $pkg" >&2
+        exit 1
+    fi
+}
+
 LOCK_FILE="/tmp/flash_retimer_fw.lock"
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
@@ -23,6 +32,21 @@ retimer_id="$2"
 target_version="$3"
 retimer_app="/var/env/halon-bmc/loaded/bin/retimer_app"
 
+require_cmd flock util-linux
+require_cmd i2cset i2c-tools
+require_cmd i2cget i2c-tools
+require_cmd gpiodetect libgpiod-tools
+require_cmd gpioset libgpiod-tools
+require_cmd awk gawk
+require_cmd sed sed
+require_cmd dd coreutils
+
+if [ ! -x "$retimer_app" ]; then
+    echo "Error: retimer utility is missing or not executable: $retimer_app" >&2
+    echo "Please install or enable retimer_app on the BMC image first." >&2
+    exit 1
+fi
+
 case "$retimer_id" in
     retimer1)
         bus="53"
@@ -42,22 +66,24 @@ run() {
     "$@"
 }
 
-run_capture() {
-    echo "+ $*" >&2
-    "$@"
-}
-
 if [ ! -f "$image_file" ]; then
     echo "Error: image file not found: $image_file" >&2
+    exit 1
+fi
+
+eeprom_path="/sys/bus/i2c/devices/${bus}-0050/eeprom"
+if [ ! -w "$eeprom_path" ]; then
+    echo "Error: EEPROM path not writable: $eeprom_path" >&2
     exit 1
 fi
 
 run i2cset -f -y "$bus" 0x20 0x03 0xf5
 run i2cset -f -y "$bus" 0x20 0x01 0xf5
 run i2cget -f -y "$bus" 0x50 0x00
-run dd if="$image_file" of="/sys/bus/i2c/devices/${bus}-0050/eeprom"
+run dd if="$image_file" of="$eeprom_path"
 
-gpio_name="$(run_capture gpiodetect | awk -v b="${bus}-0020" '$0 ~ b {print $1; exit}')"
+echo "+ gpiodetect | awk -v b=${bus}-0020 '$0 ~ b {print \$1; exit}'" >&2
+gpio_name="$(gpiodetect | awk -v b="${bus}-0020" '$0 ~ b {print $1; exit}')"
 if [ -z "$gpio_name" ]; then
     echo "Error: cannot find gpio chip for ${bus}-0020" >&2
     exit 1

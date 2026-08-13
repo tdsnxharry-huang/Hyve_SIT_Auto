@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Client for the Nitro BMC (retimer-flash subset).
-
-Trimmed from the frankfurter38cx2-bft framework's libs/client.py: only the
-script needed by scripts/bmc/flash_retimer_fw.sh is listed for push, since
-this bundle only supports the retimer FW upgrade/downgrade flow.
-"""
+"""Client for the Nitro BMC."""
 
 from __future__ import annotations
 
@@ -17,12 +12,31 @@ from libs.helpers import (
     ssh_run,
     ssh_check,
     setup_bmc_ssh,
+    setup_droplet_ssh,
     scp_to,
 )
 from libs.frugen import write_fru
 
 _CORDITE_BMC_SCRIPTS: tuple[str, ...] = (
     "scripts/bmc/flash_retimer_fw.sh",
+    "scripts/bmc/uart_control.sh",
+    "scripts/bmc/check_i2c_u42.sh",
+    "scripts/bmc/check_i2c_mux_u25.sh",
+    "scripts/bmc/check_i2c_u12.sh",
+    "scripts/bmc/check_i2c_u364.sh",
+    "scripts/bmc/check_i2c_mux_u67.sh",
+    "scripts/bmc/check_voltage_reading.sh",
+    "scripts/bmc/check_card_present.sh",
+    "scripts/bmc/check_retimer_link_status.sh",
+    "scripts/bmc/retimer_full_status.lua",
+    "scripts/bmc/check_retimer_link_status.sh",
+)
+
+_CORDITE_DVD_SCRIPTS: tuple[str, ...] = (
+    "scripts/dvd/set_i2c_mux.sh",
+    "scripts/dvd/check_i2c_mux_u81.sh",
+    "scripts/dvd/check_bridge_u65.sh",
+    "scripts/dvd/check_external.sh",
 )
 
 
@@ -112,3 +126,19 @@ class NitroBMC:
         p = self.ssh(cmd)
         assert p.returncode == 0
         return p.stdout
+
+
+class Droplet:
+    def __init__(self, ip: str):
+        self.ip = ip
+
+    def setup_ssh_and_scp_scripts(self) -> None:
+        if not ssh_check(self.ip):
+            setup_droplet_ssh(self.ip)
+        for path in _CORDITE_DVD_SCRIPTS:
+            scp_to(self.ip, path)
+
+    def ssh(self, command: str) -> subprocess.CompletedProcess[str]:
+        if not ssh_check(self.ip):
+            self.setup_ssh_and_scp_scripts()
+        return ssh_run(command, self.ip, "root")

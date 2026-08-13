@@ -3,13 +3,12 @@
 
 Client-server design (reuses the existing hyve-bft plumbing):
   * Server = this script, run on the automation host. It decides what to
-    flash next, pushes the FW image + scripts/bmc/flash_retimer_fw.sh to the
+        flash next, pushes only the required FW image + flash helper script to the
     BMC (SCP), triggers the flash over SSH (the BMC does the actual I2C
     flashing + FW-version check locally via retimer_app), then records the
     reported pass/fail result.
   * Client = the DUT's Nitro BMC. All I2C access is done through
-    scripts/bmc/flash_retimer_fw.sh (already in this repo) which is pushed
-    to the BMC by libs.client.NitroBMC.setup_ssh_and_scp_scripts().
+        scripts/bmc/flash_retimer_fw.sh which is pushed on demand by this script.
 
 Test flow:
   Initial stage:
@@ -45,6 +44,7 @@ import csv
 import json
 import os
 import re
+import shutil
 import sys
 import time
 from dataclasses import asdict, dataclass
@@ -55,11 +55,66 @@ REPO_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from libs.client import NitroBMC  # noqa: E402
-from libs.helpers import ping_ip_until_response, scp_to, ssh_check  # noqa: E402
+from libs.helpers import (  # noqa: E402
+    ping_ip_until_response,
+    scp_to,
+    setup_bmc_ssh,
+    ssh_check,
+)
 
 CARD_BUS: dict[str, str] = {"retimer1": "53", "retimer2": "45"}
 CARD_LABEL: dict[str, str] = {"retimer1": "Cordite 0", "retimer2": "Cordite 1"}
 _VERSION_RE = re.compile(r'"Version"\s*:\s*"([^"]*)"')
+FLASH_SCRIPT = REPO_ROOT / "scripts" / "bmc" / "flash_retimer_fw.sh"
+
+
+def _require_cmd(cmd: str, install_hint: str) -> str | None:
+    if shutil.which(cmd):
+        return None
+    return f"- {cmd}: install {install_hint}"
+
+
+def preflight_requirements(bmc_ip: str) -> None:
+    """Validate host-side prerequisites before starting stress cycles."""
+    missing: list[str] = []
+
+    for cmd, hint in (
+        ("ssh", "openssh-client"),
+        ("scp", "openssh-client"),
+        ("nitro-bmc", "nitro-bmc CLI"),
+        ("ping", "iputils / system ping"),
+    ):
+        miss = _require_cmd(cmd, hint)
+        if miss:
+            missing.append(miss)
+
+    if not FLASH_SCRIPT.is_file():
+        missing.append(f"- required script not found: {FLASH_SCRIPT}")
+
+    # If key-based SSH is not ready, we will bootstrap via coap + keg-install.
+    if not ssh_check(bmc_ip):
+        for cmd, hint in (("coap", "coap client"), ("bash", "bash")):
+            miss = _require_cmd(cmd, hint)
+            if miss:
+                missing.append(miss)
+        keg_dir = REPO_ROOT / "keg-install"
+        for rel in (
+            "keg-install",
+            "put_pub_key.sh",
+            "mfg-public-key.pem",
+            "nitro-bmc-mfg-0.3940.0.keg",
+            "carbon-ndk-ast2500-0.204527.0.keg",
+        ):
+            required = keg_dir / rel
+            if not required.exists():
+                missing.append(f"- missing bootstrap file: {required}")
+
+    if missing:
+        sys.exit(
+            "Error: missing prerequisites for retimer stress:\n"
+            + "\n".join(missing)
+            + "\nHint: install missing tools first, then run setup_env.sh / uv sync."
+        )
 
 
 @dataclass
@@ -311,6 +366,8 @@ def main() -> None:
     if not cards:
         sys.exit("Error: no cards selected.")
 
+    preflight_requirements(bmc_ip)
+
     upgrade = FwImage(Path(args.upgrade_bin), args.upgrade_version)
     downgrade = FwImage(Path(args.downgrade_bin), args.downgrade_version)
     for image in (upgrade, downgrade):
@@ -340,9 +397,17 @@ def main() -> None:
         if not ping_ip_until_response(bmc_ip, timeout=60):
             abort(f"BMC {bmc_ip} is not pingable")
 
-        bmc.setup_ssh_and_scp_scripts()
+        if not ssh_check(bmc_ip):
+            print("[Initial] SSH key not ready, bootstrapping BMC SSH access via keg-install ...")
+            setup_bmc_ssh(bmc_ip)
+
         if not ssh_check(bmc_ip):
             abort(f"BMC {bmc_ip} SSH is not available")
+
+        scp_to(bmc_ip, str(FLASH_SCRIPT))
+        chmod_res = bmc.ssh("chmod +x flash_retimer_fw.sh")
+        if chmod_res.returncode != 0:
+            abort("Failed to prepare flash_retimer_fw.sh on BMC")
 
         print("[Initial] Verifying selected retimer(s) are accessible ...")
         for card in cards:
