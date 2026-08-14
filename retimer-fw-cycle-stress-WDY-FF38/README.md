@@ -7,7 +7,7 @@ This folder is a standalone minimal package for the **retimer FW flash stress** 
   - Server: `retimer_fw_cycle_stress.py` (runs on automation host)
   - Client: `scripts/bmc/flash_retimer_fw.sh` (copied to DUT BMC and executed via SSH)
 - Default test target is **100 cycles**.
-- No manual SCP is required. Server side auto-pushes the client script to DUT.
+- No manual SCP is required. Server checks whether the client script exists on DUT and uploads only when missing.
 
 ## Required files in this bundle
 - `retimer_fw_cycle_stress.py`

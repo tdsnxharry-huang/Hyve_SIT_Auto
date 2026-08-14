@@ -212,12 +212,21 @@ def read_retimer_version(bmc: NitroBMC, card: str) -> str:
 
 
 def ensure_client_flash_script(bmc: NitroBMC) -> None:
-    """Always push the client flash script to DUT and make it executable."""
+    """Check client script on DUT and upload only when it is missing."""
+    if getattr(bmc, "_flash_script_ready", False):
+        return
+
+    check = bmc.ssh("test -x flash_retimer_fw.sh")
+    if check.returncode == 0:
+        setattr(bmc, "_flash_script_ready", True)
+        return
+
     scp_to(bmc.ip, str(FLASH_SCRIPT))
     p = bmc.ssh("chmod +x flash_retimer_fw.sh")
     if p.returncode != 0:
         err = (p.stderr or p.stdout or "").strip()
         raise RuntimeError(f"failed to prepare flash_retimer_fw.sh on DUT: {err}")
+    setattr(bmc, "_flash_script_ready", True)
 
 
 def flash_and_verify(
@@ -287,6 +296,9 @@ def ac_cycle_checkpoint(
 
     print(f"  [Checkpoint] Host power is on, settling {settle_s}s before FW read-back ...")
     time.sleep(settle_s)
+
+    # After AC cycle, re-check script presence before the next flash.
+    setattr(bmc, "_flash_script_ready", False)
 
     all_ok = True
     for card in cards:
