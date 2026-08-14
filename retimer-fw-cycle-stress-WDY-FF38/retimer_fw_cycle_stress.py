@@ -211,6 +211,15 @@ def read_retimer_version(bmc: NitroBMC, card: str) -> str:
     return parse_fw_version(getter())
 
 
+def ensure_client_flash_script(bmc: NitroBMC) -> None:
+    """Always push the client flash script to DUT and make it executable."""
+    scp_to(bmc.ip, str(FLASH_SCRIPT))
+    p = bmc.ssh("chmod +x flash_retimer_fw.sh")
+    if p.returncode != 0:
+        err = (p.stderr or p.stdout or "").strip()
+        raise RuntimeError(f"failed to prepare flash_retimer_fw.sh on DUT: {err}")
+
+
 def flash_and_verify(
     bmc: NitroBMC,
     card: str,
@@ -221,6 +230,7 @@ def flash_and_verify(
 ) -> bool:
     """Push the FW image + run flash_retimer_fw.sh on the BMC, then verify."""
     t0 = time.time()
+    ensure_client_flash_script(bmc)
     scp_to(bmc.ip, str(image.bin_file))
     remote_name = os.path.basename(image.bin_file)
     cmd = f"sh flash_retimer_fw.sh {remote_name} {card} {image.version}"
@@ -404,10 +414,10 @@ def main() -> None:
         if not ssh_check(bmc_ip):
             abort(f"BMC {bmc_ip} SSH is not available")
 
-        scp_to(bmc_ip, str(FLASH_SCRIPT))
-        chmod_res = bmc.ssh("chmod +x flash_retimer_fw.sh")
-        if chmod_res.returncode != 0:
-            abort("Failed to prepare flash_retimer_fw.sh on BMC")
+        try:
+            ensure_client_flash_script(bmc)
+        except Exception as exc:  # noqa: BLE001
+            abort(f"Failed to prepare flash_retimer_fw.sh on BMC: {exc}")
 
         print("[Initial] Verifying selected retimer(s) are accessible ...")
         for card in cards:
