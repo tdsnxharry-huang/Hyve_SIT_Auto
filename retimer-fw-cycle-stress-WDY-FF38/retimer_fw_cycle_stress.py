@@ -20,13 +20,13 @@ Test flow:
     3. Flash the UPGRADE FW, check version.
     4. Flash the DOWNGRADE FW, check version.
        (3=>4 is one "cycle"; same as the BFT retimer flash test, just looped)
-    5. Every --checkpoint-interval cycles: AC-cycle the DUT
-       (`nitro-bmc -i $BMC_IP power cycle`), wait for the BMC/host to come
+    5. Every --checkpoint-interval cycles: DC-cycle the DUT
+       (`nitro-bmc -i $BMC_IP power off` followed by `power on`), wait for the BMC/host to come
        back, then verify the retimer FW version loaded correctly across the
        power cycle.
     6. Repeat 3=>4 (with checkpoints) until --cycles total cycles are done.
   Both K2V5 cards (Cordite 0 = retimer1 / bus 53, Cordite 1 = retimer2 /
-  bus 45) are exercised every cycle by default, since a single AC cycle
+  bus 45) are exercised every cycle by default, since a single DC cycle
   power-cycles the whole DUT (and therefore both cards) at once.
 
 Results are written to CSV (every row) and a JSON summary (at the end / on
@@ -283,21 +283,32 @@ def ac_cycle_checkpoint(
     power_timeout: int,
     bmc_back_timeout: int,
 ) -> bool:
-    """Power-cycle the DUT, wait for it to come back, and re-check FW versions."""
-    print(f"  [Checkpoint] Cycle {cycle}: issuing AC power cycle "
-          f"(nitro-bmc -i {bmc.ip} power cycle) ...")
+    """Power-cycle the DUT (DC cycle via power off/on), wait for it to come back, and re-check FW versions."""
     t0 = time.time()
-    bmc.run("power cycle")
+    
+    print(f"  [Checkpoint] Cycle {cycle}: issuing power off "
+          f"(nitro-bmc -i {bmc.ip} power off) ...")
+    bmc.run("power off")
+    
+    print("  [Checkpoint] Verifying power is off ...")
+    bmc.wait_for_power_status("off", timeout=power_timeout)
+    print("  [Checkpoint] Confirmed power is off.")
+    
+    print(f"  [Checkpoint] Issuing power on (nitro-bmc -i {bmc.ip} power on) ...")
+    bmc.run("power on")
+    
+    print("  [Checkpoint] Verifying power is on ...")
+    bmc.wait_for_power_status("on", timeout=power_timeout)
+    print("  [Checkpoint] Confirmed power is on.")
 
     print("  [Checkpoint] Waiting for BMC to come back ...")
     ping_ip_until_response(bmc.ip, timeout=bmc_back_timeout)
     bmc.wait_for_command_success("bmc info", timeout=bmc_back_timeout)
-    bmc.wait_for_power_status("on", timeout=power_timeout)
 
     print(f"  [Checkpoint] Host power is on, settling {settle_s}s before FW read-back ...")
     time.sleep(settle_s)
 
-    # After AC cycle, re-check script presence before the next flash.
+    # After DC cycle, re-check script presence before the next flash.
     setattr(bmc, "_flash_script_ready", False)
 
     all_ok = True
@@ -313,7 +324,7 @@ def ac_cycle_checkpoint(
             CycleResult(
                 cycle=cycle,
                 card=card,
-                step="ac_cycle_check",
+                step="dc_cycle_check",
                 expected_version=expected,
                 actual_version=actual_version,
                 status=status,
@@ -322,14 +333,14 @@ def ac_cycle_checkpoint(
             )
         )
         label = CARD_LABEL.get(card, card)
-        print(f"    [{label}/{card}] post-AC-cycle FW version: expected={expected} "
+        print(f"    [{label}/{card}] post-DC-cycle FW version: expected={expected} "
               f"actual={actual_version} -> {status}")
     return all_ok
 
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        description="Retimer FW upgrade/downgrade endurance loop with periodic AC-cycle checkpoints.",
+        description="Retimer FW upgrade/downgrade endurance loop with periodic DC-cycle checkpoints.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p.add_argument("--bmc-ip", default="", help="Nitro BMC IP of the DUT. Prompted if omitted.")
@@ -343,7 +354,7 @@ def parse_args() -> argparse.Namespace:
         "--checkpoint-interval",
         type=int,
         default=10,
-        help="Run an AC-cycle checkpoint every N cycles.",
+        help="Run a DC-cycle checkpoint every N cycles.",
     )
     p.add_argument(
         "--upgrade-bin",
@@ -450,7 +461,7 @@ def main() -> None:
 
         # ---------------- Testing stage ----------------
         print(f"[Testing] Starting {args.cycles} upgrade/downgrade cycles "
-              f"(AC-cycle checkpoint every {args.checkpoint_interval} cycles) ...")
+              f"(DC-cycle checkpoint every {args.checkpoint_interval} cycles) ...")
 
         for cycle in range(1, args.cycles + 1):
             print(f"-- Cycle {cycle}/{args.cycles} --")
@@ -486,7 +497,7 @@ def main() -> None:
                     bmc_back_timeout=args.bmc_back_timeout,
                 )
                 if not ok and not args.continue_on_failure:
-                    abort(f"AC-cycle checkpoint failed at cycle {cycle}")
+                    abort(f"DC-cycle checkpoint failed at cycle {cycle}")
 
         log.close()
         summary = log.write_summary(completed_cycles, args.cycles)
