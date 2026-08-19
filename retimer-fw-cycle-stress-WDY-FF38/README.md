@@ -4,6 +4,7 @@
 
 | Date | Description |
 |---|---|
+| 2026-08-19 | **詳細 fail 報告**：`write_summary()` 新增 `failed_cycles`（fail 的圈號列表）和 `failure_details`（每筆 fail 的 cycle/step/expected/actual/detail）；新增 `print_fail_report()` 在每次結束時印出 fail 表格 |
 | 2026-08-19 | **SSH 相容性**：統一所有 SSH/SCP 指令的 `-o` 選項（`BatchMode`, `StrictHostKeyChecking`, `UserKnownHostsFile`, `ConnectTimeout`），修正 BMC reboot 後 host key 改變導致 SSH 卡住的問題 |
 | 2026-08-19 | **DC cycle 命名**：將程式中殘留的 `ac_cycle_checkpoint`、`--post-ac-settle-s` 等變數名稱統一改為 `dc_` 前綴，避免與 AC cycle（SNMP PDU）混淆 |
 | 2026-08-17 | **電源控制改為 DC cycle**：將 `power cycle` 指令改為 `power off` + 確認 off + `power on` + 確認 on，中間穿插 power status 檢查，確保每步都有驗證 |
