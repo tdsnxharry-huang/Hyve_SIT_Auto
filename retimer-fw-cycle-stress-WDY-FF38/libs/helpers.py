@@ -55,13 +55,25 @@ def execute(command: Union[str, list[str]], check: bool = False, **options) -> s
         logger.info(f"stderr:\n{p.stderr}")
     return p
 
+_SSH_OPTS = (
+    "-o BatchMode=yes "
+    "-o StrictHostKeyChecking=no "
+    "-o UserKnownHostsFile=/dev/null "
+    "-o ConnectTimeout=10 "
+    "-i ~/.ssh/id_ecdsa"
+)
+_SCP_OPTS = (
+    "-o StrictHostKeyChecking=no "
+    "-o UserKnownHostsFile=/dev/null "
+    "-o ConnectTimeout=10 "
+    "-i ~/.ssh/id_ecdsa"
+)
+
+
 def ssh_run(
     command: Union[str, list[str]], host: str, user: str, **options
 ) -> subprocess.CompletedProcess:
-    ssh_command = (
-        f'ssh -oBatchMode=yes -i ~/.ssh/id_ecdsa -oForwardAgent=yes '
-        f'-oStrictHostKeyChecking=no {user}@{host} "{command}"'
-    )
+    ssh_command = f'ssh {_SSH_OPTS} {user}@{host} "{command}"'
     logger.info(f"Executing SSH command: {ssh_command}")
     cp = subprocess.run(
         ssh_command, capture_output=True, shell=True, check=False, text=True, **options
@@ -422,40 +434,26 @@ def ssh_check(ip: str, username: str = "root") -> bool:
     """Return True if SSH login succeeds."""
     if not ip:
         return False
-    cmd = (
-        f"ssh -o BatchMode=yes -i ~/.ssh/id_ecdsa "
-        f"-oUserKnownHostsFile=/dev/null -oStrictHostKeyChecking=no "
-        f"{username}@{ip} uptime"
-    )
+    cmd = f"ssh {_SSH_OPTS} {username}@{ip} uptime"
     p = execute(cmd)
     return p.returncode == 0
 
 
 def ssh_execute(ip: str, remote_cmd: str, **options):
     """Run a command on a remote host via SSH."""
-    cmd = (
-        f"ssh -o BatchMode=yes -i ~/.ssh/id_ecdsa "
-        f"-oUserKnownHostsFile=/dev/null -oStrictHostKeyChecking=no "
-        f"root@{ip} {remote_cmd}"
-    )
+    cmd = f"ssh {_SSH_OPTS} root@{ip} {remote_cmd}"
     return execute(cmd, **options)
 
 
 def scp_to(ip: str, filename: str):
     """SCP a file to a remote host's home directory."""
-    cmd = (
-        f"scp -i ~/.ssh/id_ecdsa -oUserKnownHostsFile=/dev/null "
-        f"-oStrictHostKeyChecking=no {filename} root@{ip}:~/"
-    )
+    cmd = f"scp {_SCP_OPTS} {filename} root@{ip}:~/"
     return execute(cmd)
 
 
 def scp_from(ip: str, filename: str):
     """SCP a file from a remote host's home directory."""
-    cmd = (
-        f"scp -i ~/.ssh/id_ecdsa -oUserKnownHostsFile=/dev/null "
-        f"-oStrictHostKeyChecking=no root@{ip}:~/{filename} ."
-    )
+    cmd = f"scp {_SCP_OPTS} root@{ip}:~/{filename} ."
     return execute(cmd)
 
 # ---------------------------------------------------------------------------

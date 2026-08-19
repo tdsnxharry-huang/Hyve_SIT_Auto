@@ -273,7 +273,7 @@ def flash_and_verify(
     return status == "PASS"
 
 
-def ac_cycle_checkpoint(
+def dc_cycle_checkpoint(
     bmc: NitroBMC,
     cards: list[str],
     expected_versions: dict[str, str],
@@ -370,7 +370,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--downgrade-version", default="2.13.0", help="Target version for the downgrade image.")
     p.add_argument("--log-dir", default="", help="Directory for CSV/JSON results (default: logs/retimer_stress/<timestamp>).")
     p.add_argument(
-        "--post-ac-settle-s",
+        "--post-dc-settle-s",
         type=int,
         default=90,
         help="Seconds to wait after host power is back on before reading retimer FW version.",
@@ -486,13 +486,13 @@ def main() -> None:
             completed_cycles = cycle
 
             if cycle % args.checkpoint_interval == 0:
-                ok = ac_cycle_checkpoint(
+                ok = dc_cycle_checkpoint(
                     bmc,
                     cards,
                     expected,
                     cycle,
                     log,
-                    settle_s=args.post_ac_settle_s,
+                    settle_s=args.post_dc_settle_s,
                     power_timeout=args.power_status_timeout,
                     bmc_back_timeout=args.bmc_back_timeout,
                 )

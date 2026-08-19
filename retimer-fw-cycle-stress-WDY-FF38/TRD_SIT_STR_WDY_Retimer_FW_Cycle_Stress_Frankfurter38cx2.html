@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRD - SIT_STR_WDY_Retimer_FW_Cycle_Stress_Frankfurter38cx2</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; margin: 40px; color: #172b4d; font-size: 14px; line-height: 1.6; }
+  h1 { text-align: center; font-size: 24px; border-bottom: 2px solid #0052cc; padding-bottom: 12px; }
+  h2 { font-size: 18px; color: #0052cc; border-bottom: 1px solid #dfe1e6; padding-bottom: 6px; margin-top: 32px; }
+  h3 { font-size: 15px; color: #253858; margin-top: 20px; }
+  h4 { font-size: 14px; color: #42526e; margin-top: 16px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+  th { background: #0052cc; color: #fff; padding: 8px 12px; text-align: left; font-size: 13px; }
+  td { border: 1px solid #dfe1e6; padding: 7px 12px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f5f7; }
+  code { background: #f4f5f7; padding: 2px 5px; border-radius: 3px; font-family: monospace; font-size: 12px; color: #172b4d; }
+  pre { background: #f4f5f7; padding: 14px 16px; border-radius: 4px; border-left: 4px solid #0052cc; overflow-x: auto; font-size: 12px; line-height: 1.5; }
+  .pass { color: #006644; font-weight: bold; }
+  .fail { color: #bf2600; font-weight: bold; }
+  .checked::before { content: "☑ "; color: #0052cc; }
+  .unchecked::before { content: "☐ "; color: #97a0af; }
+  ul { margin: 6px 0; padding-left: 22px; }
+  li { margin: 3px 0; }
+  .confidential { background: #fff8e1; border: 1px solid #f9c74f; padding: 10px 14px; border-radius: 4px; font-size: 13px; margin: 8px 0; }
+  .section-card { border: 1px solid #dfe1e6; border-radius: 4px; padding: 16px 20px; margin: 16px 0; }
+  .workflow { background: #f4f5f7; border: 1px solid #c1c7d0; border-radius: 4px; padding: 16px; font-family: monospace; font-size: 12px; white-space: pre; overflow-x: auto; }
+  .label { font-weight: 600; color: #253858; display: inline-block; min-width: 200px; }
+  hr { border: none; border-top: 1px solid #dfe1e6; margin: 28px 0; }
+</style>
+</head>
+<body>
+
+<h1>Hyve Solutions</h1>
+
+<div class="section-card">
+  <h3>Author</h3>
+  <p>&lt;Harry Huang&gt;, &lt;SIT Team&gt;, <a href="mailto:harry.huang@hyvesolutions.com">harry.huang@hyvesolutions.com</a></p>
+
+  <h3>Reviewer</h3>
+  <p>&lt;TBD&gt;</p>
+
+  <h3>Confidentiality</h3>
+  <div class="confidential">
+    <strong>CONFIDENTIAL &amp; PRIVILEGED.</strong><br>
+    This document contains confidential and privileged trade secrets and other information of Hyve Solutions and as such may not be disclosed to others not employed by Hyve Solutions. All rights reserved.
+  </div>
+
+  <h3>Revision History</h3>
+  <table>
+    <tr><th>Date</th><th>By</th><th>Description of changes</th></tr>
+    <tr><td>2026/08/17</td><td>Harry Huang</td><td>First release</td></tr>
+  </table>
+</div>
+
+<hr>
+
+<h2>1. Test Information</h2>
+<div class="section-card">
+  <p><span class="label">Test type</span></p>
+  <ul>
+    <li><span class="checked">Functional Test Case</span></li>
+    <li><span class="unchecked">Regression Test Case</span></li>
+  </ul>
+
+  <p><span class="label">System Under Test</span></p>
+  <ul>
+    <li><span class="unchecked">x86 Intel System</span></li>
+    <li><span class="checked">x86 AMD System</span></li>
+    <li><span class="unchecked">RISC ARM System</span></li>
+  </ul>
+
+  <p><span class="label">Test Case Development Engineer</span> Harry Huang</p>
+
+  <p><span class="label">Project</span></p>
+  <ul>
+    <li><span class="checked">Frankfurter38cx2</span></li>
+  </ul>
+</div>
+
+<hr>
+
+<h2>2. Test Summary</h2>
+<div class="section-card">
+  <h3>Results</h3>
+  <p>Conclusion of the test: <span class="pass">PASS</span> / <span class="fail">FAIL</span></p>
+
+  <h3>Criteria description</h3>
+  <p><strong class="pass">PASS:</strong></p>
+  <ul>
+    <li>Necessary utilities installed (<code>ssh</code>, <code>scp</code>, <code>nitro-bmc</code>, <code>ping</code>).</li>
+    <li>Necessary FW binary images exist (<code>upgrade-bin</code>, <code>downgrade-bin</code>).</li>
+    <li>BMC is pingable and SSH is accessible.</li>
+    <li><code>flash_retimer_fw.sh</code> is successfully pushed to the BMC.</li>
+    <li>Selected retimer card(s) are accessible via <code>retimer_app --get-fw-version</code>.</li>
+    <li>Initial DOWNGRADE baseline flash succeeds and version is verified.</li>
+    <li>Each upgrade cycle: FW flashed to upgrade version and version confirmed.</li>
+    <li>Each downgrade cycle: FW flashed to downgrade version and version confirmed.</li>
+    <li>DC-cycle checkpoint (every N cycles): power off → confirmed off → power on → confirmed on → BMC reachable → FW version matches expected.</li>
+    <li>All cycles complete with no version mismatch.</li>
+  </ul>
+  <p><strong class="fail">FAIL:</strong></p>
+  <ul>
+    <li>One of the above PASS criteria is not met.</li>
+  </ul>
+</div>
+
+<hr>
+
+<h2>3. Background</h2>
+<div class="section-card">
+  <h3>Purpose and Scope of the Test</h3>
+  <p>The purpose is to run Retimer FW upgrade/downgrade endurance (cycle) stress test to verify that the retimer FW flash is stable across repeated flashing cycles and DC power cycles.</p>
+
+  <h3>DC Cycle Command</h3>
+  <pre>nitro-bmc -i &lt;BMC_IP&gt; power off
+→ wait for power status == off
+nitro-bmc -i &lt;BMC_IP&gt; power on
+→ wait for power status == on
+→ wait for BMC ping response
+→ wait for `nitro-bmc bmc info` to succeed
+→ sleep &lt;post_ac_settle_s&gt; seconds</pre>
+
+  <h3>Test Flow</h3>
+  <p><strong>Initial Stage:</strong></p>
+  <ol>
+    <li>Check BMC reachability (ping + SSH).</li>
+    <li>Push <code>flash_retimer_fw.sh</code> to BMC if not already present.</li>
+    <li>Verify selected retimer card(s) accessible via <code>retimer_app --get-fw-version</code>.</li>
+    <li>Flash DOWNGRADE FW baseline on all selected cards and verify version.</li>
+  </ol>
+  <p><strong>Testing Stage</strong> (repeats until <code>--cycles</code> is reached):</p>
+  <ol>
+    <li>Flash UPGRADE FW on all cards → verify version via <code>retimer_app</code>.</li>
+    <li>Flash DOWNGRADE FW on all cards → verify version via <code>retimer_app</code>.</li>
+    <li>Every <code>--checkpoint-interval</code> cycles: DC-cycle the DUT, wait for recovery, verify FW version loaded correctly.</li>
+  </ol>
+
+  <h3>Retimer Card Mapping (Frankfurter38cx2)</h3>
+  <table>
+    <tr><th>Card Name</th><th>Label</th><th>I2C Bus</th><th>Device</th></tr>
+    <tr><td><code>retimer1</code></td><td>Cordite 0</td><td>53</td><td>35</td></tr>
+    <tr><td><code>retimer2</code></td><td>Cordite 1</td><td>45</td><td>35</td></tr>
+  </table>
+
+  <h3>Categories and Test Items</h3>
+  <table>
+    <tr><th>Category</th><th>Test Item Name</th><th>Test Item Command</th><th>Description</th></tr>
+    <tr><td rowspan="4"><strong>FW Flash</strong><br>(per cycle)</td><td>upgrade</td><td><code>flash_retimer_fw.sh &lt;bus&gt; &lt;upgrade.bin&gt;</code><br>(run on BMC via SSH)</td><td>Flash upgrade FW image via I2C on BMC</td></tr>
+    <tr><td>upgrade_verify</td><td><code>retimer_app --bus &lt;bus&gt; --device 35 --vendor astera --get-fw-version</code></td><td>Verify version == upgrade version</td></tr>
+    <tr><td>downgrade</td><td><code>flash_retimer_fw.sh &lt;bus&gt; &lt;downgrade.bin&gt;</code></td><td>Flash downgrade FW image</td></tr>
+    <tr><td>downgrade_verify</td><td><code>retimer_app --bus &lt;bus&gt; --device 35 --vendor astera --get-fw-version</code></td><td>Verify version == downgrade version</td></tr>
+    <tr><td><strong>DC Checkpoint</strong><br>(every N cycles)</td><td>dc_cycle_check</td><td><code>nitro-bmc power off/on</code> + version verify</td><td>DC power cycle and verify FW version persists</td></tr>
+  </table>
+</div>
+
+<hr>
+
+<h2>4. Additional Information</h2>
+<div class="section-card">
+  <h3>Test Script Syntax</h3>
+  <pre>Usage:
+  uv run --no-sync -- python retimer_fw_cycle_stress.py [OPTIONS]
+
+  python retimer_fw_cycle_stress.py \
+      --bmc-ip &lt;BMC_IP&gt; \
+      [--cards retimer1,retimer2] \
+      [--cycles 100] \
+      [--checkpoint-interval 10] \
+      [--upgrade-bin &lt;path&gt;] \
+      [--upgrade-version 2.13.9] \
+      [--downgrade-bin &lt;path&gt;] \
+      [--downgrade-version 2.13.0] \
+      [--log-dir &lt;path&gt;] \
+      [--post-ac-settle-s 90] \
+      [--power-status-timeout 180] \
+      [--bmc-back-timeout 180] \
+      [--continue-on-failure]</pre>
+
+  <table>
+    <tr><th>Parameter</th><th>Description</th><th>Default</th></tr>
+    <tr><td><code>--bmc-ip</code></td><td>Nitro BMC IP address of the DUT (required)</td><td>—</td></tr>
+    <tr><td><code>--cards</code></td><td>Comma-separated cards to test: retimer1 (Cordite 0, bus 53), retimer2 (Cordite 1, bus 45)</td><td>retimer1,retimer2</td></tr>
+    <tr><td><code>--cycles</code></td><td>Total upgrade/downgrade cycles</td><td>100</td></tr>
+    <tr><td><code>--checkpoint-interval</code></td><td>Run a DC-cycle checkpoint every N cycles</td><td>10</td></tr>
+    <tr><td><code>--upgrade-bin</code></td><td>FW binary image for the upgrade step</td><td>bin_file/pt516_x16_normal_hyve__SRNS__2.13_Ryan__v2_13_9.bin</td></tr>
+    <tr><td><code>--upgrade-version</code></td><td>Expected version string for upgrade image</td><td>2.13.9</td></tr>
+    <tr><td><code>--downgrade-bin</code></td><td>FW binary image for the downgrade step</td><td>bin_file/pt516_x16_normal_SRNS_v2_13_0.bin</td></tr>
+    <tr><td><code>--downgrade-version</code></td><td>Expected version string for downgrade image</td><td>2.13.0</td></tr>
+    <tr><td><code>--log-dir</code></td><td>Output directory for CSV/JSON results</td><td>logs/retimer_stress/&lt;timestamp&gt;</td></tr>
+    <tr><td><code>--post-ac-settle-s</code></td><td>Seconds to wait after power on before reading FW version</td><td>90</td></tr>
+    <tr><td><code>--power-status-timeout</code></td><td>Seconds to wait for power status == on/off</td><td>180</td></tr>
+    <tr><td><code>--bmc-back-timeout</code></td><td>Seconds to wait for BMC ping/SSH to come back</td><td>180</td></tr>
+    <tr><td><code>--continue-on-failure</code></td><td>Keep looping after a failed step instead of aborting</td><td>false</td></tr>
+  </table>
+
+  <h3>Required Packages / Dependencies</h3>
+  <pre>Host side:
+  - ssh / scp       (openssh-client)
+  - nitro-bmc CLI   (nitro-bmc-cli package)
+  - ping            (iputils)
+  - uv              (Python package manager, https://docs.astral.sh/uv/)
+  - Python 3.11+
+
+BMC side (pushed automatically by the script):
+  - scripts/bmc/flash_retimer_fw.sh
+  - retimer_app     (pre-installed in /var/env/halon-bmc/loaded/bin/)</pre>
+
+  <h3>Example</h3>
+  <pre># Run 100 cycles (default), DC checkpoint every 10 cycles, both retimer cards
+./run_retimer_stress.sh --bmc-ip 10.0.0.5
+
+# Custom: 200 cycles, checkpoint every 20, only Cordite 0
+./run_retimer_stress.sh --bmc-ip 10.0.0.5 --cards retimer1 --cycles 200 --checkpoint-interval 20
+
+# Continue on failure (don't abort on first fail)
+./run_retimer_stress.sh --bmc-ip 10.0.0.5 --continue-on-failure</pre>
+
+  <h3>Output Files</h3>
+  <table>
+    <tr><th>File Name</th><th>Description</th></tr>
+    <tr><td><code>logs/retimer_stress/&lt;timestamp&gt;/retimer_stress_results.csv</code></td><td>Per-step result log (cycle, card, step, expected version, actual version, status, duration, timestamp)</td></tr>
+    <tr><td><code>logs/retimer_stress/&lt;timestamp&gt;/retimer_stress_summary.json</code></td><td>Final summary: completed cycles, pass/fail count per card, first failure info, overall_pass</td></tr>
+  </table>
+
+  <h3>CSV Column Description</h3>
+  <table>
+    <tr><th>Column</th><th>Description</th></tr>
+    <tr><td><code>cycle</code></td><td>Cycle number (0 = initial baseline)</td></tr>
+    <tr><td><code>card</code></td><td>Card name (retimer1 / retimer2)</td></tr>
+    <tr><td><code>step</code></td><td>Step name: init_downgrade, upgrade, downgrade, dc_cycle_check</td></tr>
+    <tr><td><code>expected_version</code></td><td>Expected FW version string</td></tr>
+    <tr><td><code>actual_version</code></td><td>Actual FW version string read from retimer_app</td></tr>
+    <tr><td><code>status</code></td><td><span class="pass">PASS</span> or <span class="fail">FAIL</span></td></tr>
+    <tr><td><code>duration_s</code></td><td>Step duration in seconds</td></tr>
+    <tr><td><code>timestamp</code></td><td>ISO 8601 timestamp</td></tr>
+    <tr><td><code>detail</code></td><td>Additional detail (error message if failed)</td></tr>
+  </table>
+
+  <h3>Experience Required</h3>
+  <p>Knowledge of BMC SSH access, retimer FW flashing, and nitro-bmc CLI operation.</p>
+
+  <h3>Test Items / Equipment Needed</h3>
+  <ul>
+    <li>Frankfurter38cx2 DUT with Nitro BMC</li>
+    <li>2x Cordite K2V5 cards (retimer1 / retimer2) installed</li>
+    <li>Host with SSH access to BMC</li>
+    <li>Two Astera Labs PT516 FW binary images (upgrade + downgrade versions)</li>
+  </ul>
+
+  <h3>Estimated Test Time</h3>
+  <table>
+    <tr><th>Configuration</th><th>Estimated Time</th></tr>
+    <tr><td>100 cycles, both cards, checkpoint every 10</td><td>~3–4 hours</td></tr>
+    <tr><td>100 cycles, 1 card only</td><td>~1.5–2 hours</td></tr>
+    <tr><td>Per cycle (flash×2 + verify×2 per card)</td><td>~2–3 minutes</td></tr>
+    <tr><td>Per DC checkpoint</td><td>~5–8 minutes (power cycle + settle + version check)</td></tr>
+  </table>
+</div>
+
+<hr>
+
+<h2>5. Test Cases</h2>
+<div class="section-card">
+  <h3>Instruction</h3>
+  <h4>Workflow</h4>
+  <div class="workflow">[Start]
+  │
+  ▼
+[Preflight Check]
+  Check: ssh, scp, nitro-bmc, ping exist
+  Check: FW binary files exist
+  Check: flash_retimer_fw.sh exists
+  │
+  ▼
+[Initial Stage]
+  BMC pingable? ──No──▶ [ABORT]
+  SSH accessible? ──No──▶ setup_bmc_ssh (keg-install bootstrap)
+  Push flash_retimer_fw.sh to BMC
+  Read current retimer FW version (sanity check)
+  Flash DOWNGRADE baseline on all cards
+  Verify version == downgrade_version
+  │
+  ▼
+[Testing Loop: cycle 1 to N]
+  │
+  ├─▶ Flash UPGRADE on all cards
+  │     Verify version == upgrade_version
+  │     FAIL? ──continue_on_failure=false──▶ [ABORT]
+  │
+  ├─▶ Flash DOWNGRADE on all cards
+  │     Verify version == downgrade_version
+  │     FAIL? ──continue_on_failure=false──▶ [ABORT]
+  │
+  └─▶ cycle % checkpoint_interval == 0?
+        Yes ──▶ [DC Checkpoint]
+                  nitro-bmc power off
+                  Wait power status == off
+                  nitro-bmc power on
+                  Wait power status == on
+                  Wait BMC ping
+                  Wait `bmc info` success
+                  Sleep post_ac_settle_s
+                  Read FW version → verify == expected
+                  FAIL? ──continue_on_failure=false──▶ [ABORT]
+  │
+  ▼
+[End: Write summary JSON, exit 0=PASS / 1=FAIL]</div>
+
+  <hr>
+
+  <h3>Test Case ID: STR-RET-001</h3>
+  <table>
+    <tr><td><strong>Test case name</strong></td><td>SIT_STR_WDY_Retimer_FW_Upgrade_Downgrade_Cycle_Frankfurter38cx2</td></tr>
+    <tr><td><strong>Description</strong></td><td>Retimer FW upgrade/downgrade endurance stress test — repeatedly flashes upgrade and downgrade FW images on Cordite K2V5 retimer cards and verifies the FW version after each flash.</td></tr>
+    <tr><td><strong>Applicable for</strong></td><td>FW Flash / Retimer stress</td></tr>
+    <tr><td><strong>Requirements</strong></td><td>Astera Labs PT516 retimer accessible on I2C bus 53 (Cordite 0) and bus 45 (Cordite 1).</td></tr>
+    <tr><td><strong>Initial Conditions</strong></td><td>
+      <ul>
+        <li>BMC is alive and pingable.</li>
+        <li>Host has SSH key access to BMC (or keg-install bootstrap is available).</li>
+        <li><code>bin_file/</code> contains both upgrade and downgrade FW binaries.</li>
+      </ul>
+    </td></tr>
+  </table>
+
+  <h4>Test Steps</h4>
+  <table>
+    <tr><th>Step</th><th>Action</th><th>Expected Result</th></tr>
+    <tr><td>1</td><td>Run preflight check</td><td>All required tools present; FW binaries exist</td></tr>
+    <tr><td>2</td><td>Verify BMC SSH access</td><td>SSH connects to BMC as root</td></tr>
+    <tr><td>3</td><td>Push <code>flash_retimer_fw.sh</code> to BMC <code>/tmp/</code></td><td>SCP succeeds</td></tr>
+    <tr><td>4</td><td>Read initial retimer FW version</td><td>Version string returned without error</td></tr>
+    <tr><td>5</td><td>Flash DOWNGRADE FW baseline</td><td>Flash succeeds; version == <code>downgrade_version</code></td></tr>
+    <tr><td>6 (per cycle)</td><td>Flash UPGRADE FW</td><td>Flash succeeds; version == <code>upgrade_version</code></td></tr>
+    <tr><td>7 (per cycle)</td><td>Flash DOWNGRADE FW</td><td>Flash succeeds; version == <code>downgrade_version</code></td></tr>
+    <tr><td>8 (every N cycles)</td><td>DC-cycle DUT</td><td>Power off confirmed → power on confirmed → BMC recovers → FW version == expected</td></tr>
+    <tr><td>9</td><td>Repeat steps 6–8 for all cycles</td><td>All cycles complete with PASS status</td></tr>
+  </table>
+
+  <h4>Pass / Fail Criteria</h4>
+  <table>
+    <tr><th></th><th>Criteria</th></tr>
+    <tr><td><span class="pass">PASS</span></td><td><code>overall_pass: true</code> in summary JSON; all <code>status</code> fields in CSV == PASS; zero failed cycles across both cards.</td></tr>
+    <tr><td><span class="fail">FAIL</span></td><td>Any <code>status</code> == FAIL in CSV; <code>overall_pass: false</code> in summary JSON; script exits with non-zero return code.</td></tr>
+  </table>
+</div>
+
+</body>
+</html>

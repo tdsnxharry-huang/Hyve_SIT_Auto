@@ -1,5 +1,14 @@
 # Retimer Flash Stress Minimal Bundle
 
+## Changelog
+
+| Date | Description |
+|---|---|
+| 2026-08-19 | **SSH 相容性**：統一所有 SSH/SCP 指令的 `-o` 選項（`BatchMode`, `StrictHostKeyChecking`, `UserKnownHostsFile`, `ConnectTimeout`），修正 BMC reboot 後 host key 改變導致 SSH 卡住的問題 |
+| 2026-08-19 | **DC cycle 命名**：將程式中殘留的 `ac_cycle_checkpoint`、`--post-ac-settle-s` 等變數名稱統一改為 `dc_` 前綴，避免與 AC cycle（SNMP PDU）混淆 |
+| 2026-08-17 | **電源控制改為 DC cycle**：將 `power cycle` 指令改為 `power off` + 確認 off + `power on` + 確認 on，中間穿插 power status 檢查，確保每步都有驗證 |
+| 2026-08-17 | **初始版本**：從 frankfurter38cx2-bft 主包拆出獨立的 retimer FW upgrade/downgrade 壓力測試腳本，支援 DC cycle checkpoint、CSV/JSON 記錄、BMC SSH 自動 bootstrap |
+
 This folder is a standalone minimal package for the **retimer FW flash stress** item only.
 
 ## Scope
