@@ -185,11 +185,23 @@ class ResultLog:
                 "total_steps": len(card_results),
                 "passed": len(card_results) - len(failed),
                 "failed": len(failed),
+                "failed_cycles": sorted({r.cycle for r in failed}),
                 "first_failure": (
                     {"cycle": failed[0].cycle, "step": failed[0].step}
                     if failed
                     else None
                 ),
+                "failure_details": [
+                    {
+                        "cycle": r.cycle,
+                        "step": r.step,
+                        "expected": r.expected_version,
+                        "actual": r.actual_version,
+                        "detail": r.detail,
+                        "timestamp": r.timestamp,
+                    }
+                    for r in failed
+                ],
             }
         summary["overall_pass"] = (
             completed_cycles == total_cycles
@@ -198,6 +210,18 @@ class ResultLog:
         path = self.log_dir / "retimer_stress_summary.json"
         path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
         return summary
+
+    def print_fail_report(self) -> None:
+        failed = [r for r in self.results if r.status != "PASS"]
+        if not failed:
+            print("\n[Summary] All steps PASSED.")
+            return
+        print(f"\n[Summary] FAIL REPORT — {len(failed)} failed step(s):")
+        print(f"  {'Cycle':>6}  {'Card':<10}  {'Step':<20}  {'Expected':<12}  {'Actual':<30}  Detail")
+        print(f"  {'-'*6}  {'-'*10}  {'-'*20}  {'-'*12}  {'-'*30}  ------")
+        for r in failed:
+            detail = r.detail[:60].replace("\n", " ") if r.detail else ""
+            print(f"  {r.cycle:>6}  {r.card:<10}  {r.step:<20}  {r.expected_version:<12}  {r.actual_version:<30}  {detail}")
 
 
 def parse_fw_version(fw_json_text: str) -> str:
@@ -421,6 +445,7 @@ def main() -> None:
     def abort(reason: str) -> None:
         log.close()
         summary = log.write_summary(completed_cycles, args.cycles)
+        log.print_fail_report()
         print(json.dumps(summary, indent=2))
         sys.exit(f"ABORTED: {reason}")
 
@@ -501,6 +526,7 @@ def main() -> None:
 
         log.close()
         summary = log.write_summary(completed_cycles, args.cycles)
+        log.print_fail_report()
         print(json.dumps(summary, indent=2))
         sys.exit(0 if summary["overall_pass"] else 1)
 
